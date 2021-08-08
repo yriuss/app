@@ -1,0 +1,462 @@
+
+Allocating common symbols
+Common symbol       size              file
+
+SD5                 0xb0              build/uart.o
+lerMedida           0xa0              build/main.o
+SD2                 0xb0              build/uart.o
+nMedida             0xa0              build/main.o
+SD3                 0xb0              build/uart.o
+ADCD1               0x18              build/adc.o
+SD4                 0xb0              build/uart.o
+vt_non_rt_data_array
+                    0x40              build/virtual_timer.o
+data                0x2               build/main.o
+adc_buffer          0x800             build/main.o
+vt_non_rt_handler_array
+                    0x20              build/virtual_timer.o
+vt_rt_handler_array
+                    0x10              build/virtual_timer.o
+SD1                 0xb0              build/uart.o
+pontoPico           0xc8              build/main.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+flash            0x0000000000080000 0x0000000000080000 xr
+sram0            0x0000000020000000 0x0000000000010000 xrw
+sram1            0x0000000020080000 0x0000000000008000 xrw
+ram              0x0000000020070000 0x0000000000018000 xrw
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+LOAD build/startup_sam3x8a.o
+LOAD build/board_init.o
+LOAD build/system_init.o
+LOAD build/virtual_timer.o
+LOAD build/virtual_timer_impl.o
+LOAD build/systick_handler.o
+LOAD build/reactor.o
+LOAD build/gpio.o
+LOAD build/uart.o
+LOAD build/adc.o
+LOAD build/dac.o
+LOAD build/main.o
+                0x0000000000000200                STACK_SIZE = DEFINED (STACK_SIZE)?STACK_SIZE:0x200
+
+.text           0x0000000000080000      0xed8
+                0x0000000000080000                . = ALIGN (0x4)
+                0x0000000000080000                _sfixed = .
+ *(.vectors .vectors.*)
+ .vectors       0x0000000000080000       0xf4 build/startup_sam3x8a.o
+                0x0000000000080000                exception_table
+ *(.text .text.* .gnu.linkonce.t.*)
+ .text          0x00000000000800f4       0x54 build/startup_sam3x8a.o
+                0x00000000000800f4                DACC_Handler
+                0x00000000000800f4                DebugMon_Handler
+                0x00000000000800f4                DMAC_Handler
+                0x00000000000800f4                TRNG_Handler
+                0x00000000000800f4                HardFault_Handler
+                0x00000000000800f4                TC2_Handler
+                0x00000000000800f4                TWI1_Handler
+                0x00000000000800f4                PendSV_Handler
+                0x00000000000800f4                NMI_Handler
+                0x00000000000800f4                USART0_Handler
+                0x00000000000800f4                RTT_Handler
+                0x00000000000800f4                EFC1_Handler
+                0x00000000000800f4                PIOB_Handler
+                0x00000000000800f4                RTC_Handler
+                0x00000000000800f4                UsageFault_Handler
+                0x00000000000800f4                WDT_Handler
+                0x00000000000800f4                CAN0_Handler
+                0x00000000000800f4                TC4_Handler
+                0x00000000000800f4                TC1_Handler
+                0x00000000000800f4                HSMCI_Handler
+                0x00000000000800f4                TC3_Handler
+                0x00000000000800f4                Dummy_Handler
+                0x00000000000800f4                TWI0_Handler
+                0x00000000000800f4                USART1_Handler
+                0x00000000000800f4                PIOA_Handler
+                0x00000000000800f4                SSC_Handler
+                0x00000000000800f4                EFC0_Handler
+                0x00000000000800f4                PMC_Handler
+                0x00000000000800f4                PWM_Handler
+                0x00000000000800f4                CAN1_Handler
+                0x00000000000800f4                MemManage_Handler
+                0x00000000000800f4                SUPC_Handler
+                0x00000000000800f4                SVC_Handler
+                0x00000000000800f4                USART2_Handler
+                0x00000000000800f4                BusFault_Handler
+                0x00000000000800f4                RSTC_Handler
+                0x00000000000800f4                TC0_Handler
+                0x00000000000800f4                TC5_Handler
+                0x00000000000800f4                UOTGHS_Handler
+                0x00000000000800f4                SPI0_Handler
+                0x00000000000800f6                dummy_init_fun
+                0x00000000000800f6                user_init
+                0x00000000000800f8                Reset_Handler
+ .text          0x0000000000080148       0x10 build/board_init.o
+                0x0000000000080148                board_init
+ .text          0x0000000000080158       0xb0 build/system_init.o
+                0x0000000000080158                system_init
+ .text          0x0000000000080208      0x110 build/virtual_timer.o
+                0x000000000008020c                vt_add_rt_handlerI
+                0x0000000000080230                vt_add_non_rt_handlerI
+                0x0000000000080274                vt_delete_rt_handlerI
+                0x0000000000080298                vt_delete_non_rt_handlerI
+                0x00000000000802d0                vt_update_non_rt_handlerI
+ .text          0x0000000000080318        0x4 build/virtual_timer_impl.o
+                0x0000000000080318                vt_init
+                0x000000000008031a                vt_deinit
+ .text          0x000000000008031c       0x78 build/systick_handler.o
+                0x000000000008031c                SysTick_Handler
+ .text          0x0000000000080394       0x98 build/reactor.o
+                0x0000000000080394                reactor_init
+                0x00000000000803a4                reactor_start
+                0x00000000000803f8                reactor_add_handlerI
+ .text          0x000000000008042c       0xb4 build/gpio.o
+                0x000000000008042c                gpio_set_group_mode
+ .text          0x00000000000804e0      0x468 build/uart.o
+                0x00000000000804e0                uart_init
+                0x00000000000805bc                uart_start
+                0x00000000000806d4                uart_stop
+                0x0000000000080750                uart_putc
+                0x00000000000807a0                uart_getc
+                0x00000000000807d4                uart_write
+                0x000000000008082e                uart_read
+                0x0000000000080868                UART_Handler
+ .text          0x0000000000080948      0x1a8 build/adc.o
+                0x0000000000080948                adc_init
+                0x0000000000080960                adc_start
+                0x0000000000080a08                adc_start_conversion
+                0x0000000000080a38                adc_stop_conversion
+                0x0000000000080a52                adc_stop
+                0x0000000000080a68                ADC_Handler
+ .text          0x0000000000080af0        0x0 build/dac.o
+ .text          0x0000000000080af0      0x2e4 build/main.o
+                0x0000000000080af0                rampa_externa
+                0x0000000000080c10                blink_cb
+                0x0000000000080c20                analisa_maximo
+                0x0000000000080c38                rampa_interna
+ .text.startup  0x0000000000080dd4       0xa0 build/main.o
+                0x0000000000080dd4                main
+ *(.glue_7t)
+ .glue_7t       0x0000000000080e74        0x0 linker stubs
+ *(.glue_7)
+ .glue_7        0x0000000000080e74        0x0 linker stubs
+ *(.rodata .rodata* .gnu.linkonce.r.*)
+ .rodata        0x0000000000080e74       0x3c build/uart.o
+                0x0000000000080e74                pin_cfgs
+ .rodata        0x0000000000080eb0       0x28 build/main.o
+ *(.ARM.extab* .gnu.linkonce.armextab.*)
+                0x0000000000080ed8                . = ALIGN (0x4)
+ *(.init)
+                0x0000000000080ed8                . = ALIGN (0x4)
+                0x0000000000080ed8                __preinit_array_start = .
+ *(.preinit_array)
+                0x0000000000080ed8                __preinit_array_end = .
+                0x0000000000080ed8                . = ALIGN (0x4)
+                0x0000000000080ed8                __init_array_start = .
+ *(SORT_BY_NAME(.init_array.*))
+ *(.init_array)
+                0x0000000000080ed8                __init_array_end = .
+                0x0000000000080ed8                . = ALIGN (0x4)
+ *crtbegin.o(.ctors)
+ *(EXCLUDE_FILE(*crtend.o) .ctors)
+ *(SORT_BY_NAME(.ctors.*))
+ *crtend.o(.ctors)
+                0x0000000000080ed8                . = ALIGN (0x4)
+ *(.fini)
+                0x0000000000080ed8                . = ALIGN (0x4)
+                0x0000000000080ed8                __fini_array_start = .
+ *(.fini_array)
+ *(SORT_BY_NAME(.fini_array.*))
+                0x0000000000080ed8                __fini_array_end = .
+ *crtbegin.o(.dtors)
+ *(EXCLUDE_FILE(*crtend.o) .dtors)
+ *(SORT_BY_NAME(.dtors.*))
+ *crtend.o(.dtors)
+                0x0000000000080ed8                . = ALIGN (0x4)
+                0x0000000000080ed8                _efixed = .
+
+.vfp11_veneer   0x0000000000080ed8        0x0
+ .vfp11_veneer  0x0000000000080ed8        0x0 linker stubs
+
+.v4_bx          0x0000000000080ed8        0x0
+ .v4_bx         0x0000000000080ed8        0x0 linker stubs
+
+.iplt           0x0000000000080ed8        0x0
+ .iplt          0x0000000000080ed8        0x0 build/startup_sam3x8a.o
+
+.igot.plt       0x0000000000080ed8        0x0
+ .igot.plt      0x0000000000080ed8        0x0 build/startup_sam3x8a.o
+
+.rel.dyn        0x0000000000080ed8        0x0
+ .rel.iplt      0x0000000000080ed8        0x0 build/startup_sam3x8a.o
+                0x0000000000080ed8                . = ALIGN (0x4)
+                0x0000000000080ed8                _data_flash = .
+                0x0000000020070000                . = ORIGIN (ram)
+
+.relocate       0x0000000020070000       0x4c load address 0x0000000000080ed8
+                0x0000000020070000                . = ALIGN (0x4)
+                0x0000000020070000                _data_begin = .
+ *(.ramfunc .ramfunc.*)
+ *(.data .data.*)
+ .data          0x0000000020070000        0x0 build/startup_sam3x8a.o
+ .data          0x0000000020070000        0x0 build/board_init.o
+ .data          0x0000000020070000        0x0 build/system_init.o
+ .data          0x0000000020070000        0x0 build/virtual_timer.o
+ .data          0x0000000020070000        0x0 build/virtual_timer_impl.o
+ .data          0x0000000020070000        0x0 build/systick_handler.o
+ .data          0x0000000020070000        0x0 build/reactor.o
+ .data          0x0000000020070000        0x0 build/gpio.o
+ .data          0x0000000020070000        0x0 build/uart.o
+ .data          0x0000000020070000        0x0 build/adc.o
+ .data          0x0000000020070000        0x0 build/dac.o
+ .data          0x0000000020070000       0x4a build/main.o
+                0x0000000020070000                LARG_CURSOR
+                0x0000000020070004                ctr
+                0x0000000020070008                g_posicaoCursor
+                0x000000002007000a                table
+                0x000000002007004c                . = ALIGN (0x4)
+ *fill*         0x000000002007004a        0x2 
+                0x000000002007004c                _data_end = .
+
+.bss            0x000000002007004c      0xe70 load address 0x0000000000080f24
+                0x000000002007004c                . = ALIGN (0x4)
+                0x000000002007004c                _bss_begin = .
+ *(.bss .bss.*)
+ .bss           0x000000002007004c        0x0 build/startup_sam3x8a.o
+ .bss           0x000000002007004c        0x0 build/board_init.o
+ .bss           0x000000002007004c        0x0 build/system_init.o
+ .bss           0x000000002007004c        0x0 build/virtual_timer.o
+ .bss           0x000000002007004c        0x0 build/virtual_timer_impl.o
+ .bss           0x000000002007004c        0x4 build/systick_handler.o
+                0x000000002007004c                systick_no_ticks
+ .bss           0x0000000020070050       0x4c build/reactor.o
+ .bss           0x000000002007009c        0x0 build/gpio.o
+ .bss           0x000000002007009c        0x0 build/uart.o
+ .bss           0x000000002007009c        0x6 build/adc.o
+                0x000000002007009e                samples
+                0x00000000200700a0                eoc
+ .bss           0x00000000200700a2        0x0 build/dac.o
+ *fill*         0x00000000200700a2        0x2 
+ .bss           0x00000000200700a4       0x14 build/main.o
+                0x00000000200700a4                table_ctr
+                0x00000000200700a8                picoAtual
+                0x00000000200700ac                media
+                0x00000000200700b0                mediaTrans
+                0x00000000200700b4                numDePicos
+ *(COMMON)
+ COMMON         0x00000000200700b8       0x70 build/virtual_timer.o
+                0x00000000200700b8                vt_non_rt_data_array
+                0x00000000200700f8                vt_non_rt_handler_array
+                0x0000000020070118                vt_rt_handler_array
+ COMMON         0x0000000020070128      0x370 build/uart.o
+                0x0000000020070128                SD5
+                0x00000000200701d8                SD2
+                0x0000000020070288                SD3
+                0x0000000020070338                SD4
+                0x00000000200703e8                SD1
+ COMMON         0x0000000020070498       0x18 build/adc.o
+                0x0000000020070498                ADCD1
+ COMMON         0x00000000200704b0      0xa0c build/main.o
+                0x00000000200704b0                lerMedida
+                0x0000000020070550                nMedida
+                0x00000000200705f0                data
+                0x00000000200705f2                adc_buffer
+                0x0000000020070df4                pontoPico
+                0x0000000020070ebc                . = ALIGN (0x4)
+                0x0000000020070ebc                _bss_end = .
+                0x0000000020087ff8                _stack_end = ALIGN (((ORIGIN (ram) + LENGTH (ram)) - 0x8), 0x8)
+                0x0000000020087df8                _stack_begin = (_stack_end - STACK_SIZE)
+                0x0000000020087df8                . = _stack_begin
+
+.stack          0x0000000020070ebc      0x200 load address 0x0000000000081d94
+                0x00000000200710bc                . = (. + STACK_SIZE)
+ *fill*         0x0000000020070ebc      0x200 
+OUTPUT(build/main.elf elf32-littlearm)
+LOAD linker stubs
+
+.comment        0x0000000000000000       0x59
+ .comment       0x0000000000000000       0x59 build/startup_sam3x8a.o
+                                         0x5a (size before relaxing)
+ .comment       0x0000000000000059       0x5a build/board_init.o
+ .comment       0x0000000000000059       0x5a build/system_init.o
+ .comment       0x0000000000000059       0x5a build/virtual_timer.o
+ .comment       0x0000000000000059       0x5a build/virtual_timer_impl.o
+ .comment       0x0000000000000059       0x5a build/systick_handler.o
+ .comment       0x0000000000000059       0x5a build/reactor.o
+ .comment       0x0000000000000059       0x5a build/gpio.o
+ .comment       0x0000000000000059       0x5a build/uart.o
+ .comment       0x0000000000000059       0x5a build/adc.o
+ .comment       0x0000000000000059       0x5a build/dac.o
+ .comment       0x0000000000000059       0x5a build/main.o
+
+.ARM.attributes
+                0x0000000000000000       0x2d
+ .ARM.attributes
+                0x0000000000000000       0x2d build/startup_sam3x8a.o
+ .ARM.attributes
+                0x000000000000002d       0x2d build/board_init.o
+ .ARM.attributes
+                0x000000000000005a       0x2d build/system_init.o
+ .ARM.attributes
+                0x0000000000000087       0x2d build/virtual_timer.o
+ .ARM.attributes
+                0x00000000000000b4       0x2d build/virtual_timer_impl.o
+ .ARM.attributes
+                0x00000000000000e1       0x2d build/systick_handler.o
+ .ARM.attributes
+                0x000000000000010e       0x2d build/reactor.o
+ .ARM.attributes
+                0x000000000000013b       0x2d build/gpio.o
+ .ARM.attributes
+                0x0000000000000168       0x2d build/uart.o
+ .ARM.attributes
+                0x0000000000000195       0x2d build/adc.o
+ .ARM.attributes
+                0x00000000000001c2       0x33 build/dac.o
+ .ARM.attributes
+                0x00000000000001f5       0x2d build/main.o
+
+Cross Reference Table
+
+Symbol                                            File
+ADCD1                                             build/adc.o
+ADC_Handler                                       build/adc.o
+                                                  build/startup_sam3x8a.o
+BusFault_Handler                                  build/startup_sam3x8a.o
+CAN0_Handler                                      build/startup_sam3x8a.o
+CAN1_Handler                                      build/startup_sam3x8a.o
+DACC_Handler                                      build/startup_sam3x8a.o
+DMAC_Handler                                      build/startup_sam3x8a.o
+DebugMon_Handler                                  build/startup_sam3x8a.o
+Dummy_Handler                                     build/startup_sam3x8a.o
+EFC0_Handler                                      build/startup_sam3x8a.o
+EFC1_Handler                                      build/startup_sam3x8a.o
+HSMCI_Handler                                     build/startup_sam3x8a.o
+HardFault_Handler                                 build/startup_sam3x8a.o
+LARG_CURSOR                                       build/main.o
+MemManage_Handler                                 build/startup_sam3x8a.o
+NMI_Handler                                       build/startup_sam3x8a.o
+PIOA_Handler                                      build/startup_sam3x8a.o
+PIOB_Handler                                      build/startup_sam3x8a.o
+PMC_Handler                                       build/startup_sam3x8a.o
+PWM_Handler                                       build/startup_sam3x8a.o
+PendSV_Handler                                    build/startup_sam3x8a.o
+RSTC_Handler                                      build/startup_sam3x8a.o
+RTC_Handler                                       build/startup_sam3x8a.o
+RTT_Handler                                       build/startup_sam3x8a.o
+Reset_Handler                                     build/startup_sam3x8a.o
+SD1                                               build/uart.o
+                                                  build/main.o
+SD2                                               build/uart.o
+SD3                                               build/uart.o
+SD4                                               build/uart.o
+SD5                                               build/uart.o
+SPI0_Handler                                      build/startup_sam3x8a.o
+SSC_Handler                                       build/startup_sam3x8a.o
+SUPC_Handler                                      build/startup_sam3x8a.o
+SVC_Handler                                       build/startup_sam3x8a.o
+SysTick_Handler                                   build/systick_handler.o
+                                                  build/startup_sam3x8a.o
+TC0_Handler                                       build/startup_sam3x8a.o
+TC1_Handler                                       build/startup_sam3x8a.o
+TC2_Handler                                       build/startup_sam3x8a.o
+TC3_Handler                                       build/startup_sam3x8a.o
+TC4_Handler                                       build/startup_sam3x8a.o
+TC5_Handler                                       build/startup_sam3x8a.o
+TRNG_Handler                                      build/startup_sam3x8a.o
+TWI0_Handler                                      build/startup_sam3x8a.o
+TWI1_Handler                                      build/startup_sam3x8a.o
+UART_Handler                                      build/uart.o
+                                                  build/startup_sam3x8a.o
+UOTGHS_Handler                                    build/startup_sam3x8a.o
+USART0_Handler                                    build/startup_sam3x8a.o
+USART1_Handler                                    build/startup_sam3x8a.o
+USART2_Handler                                    build/startup_sam3x8a.o
+UsageFault_Handler                                build/startup_sam3x8a.o
+WDT_Handler                                       build/startup_sam3x8a.o
+_bss_begin                                        build/startup_sam3x8a.o
+_bss_end                                          build/startup_sam3x8a.o
+_data_begin                                       build/startup_sam3x8a.o
+_data_end                                         build/startup_sam3x8a.o
+_data_flash                                       build/startup_sam3x8a.o
+_stack_end                                        build/startup_sam3x8a.o
+adc_buffer                                        build/main.o
+adc_init                                          build/adc.o
+                                                  build/system_init.o
+adc_start                                         build/adc.o
+adc_start_conversion                              build/adc.o
+adc_stop                                          build/adc.o
+adc_stop_conversion                               build/adc.o
+analisa_maximo                                    build/main.o
+blink_cb                                          build/main.o
+board_init                                        build/board_init.o
+                                                  build/startup_sam3x8a.o
+ctr                                               build/main.o
+data                                              build/main.o
+dummy_init_fun                                    build/startup_sam3x8a.o
+eoc                                               build/adc.o
+exception_table                                   build/startup_sam3x8a.o
+g_posicaoCursor                                   build/main.o
+gpio_set_group_mode                               build/gpio.o
+                                                  build/main.o
+                                                  build/uart.o
+                                                  build/board_init.o
+lerMedida                                         build/main.o
+main                                              build/main.o
+                                                  build/startup_sam3x8a.o
+media                                             build/main.o
+mediaTrans                                        build/main.o
+nMedida                                           build/main.o
+numDePicos                                        build/main.o
+picoAtual                                         build/main.o
+pin_cfgs                                          build/uart.o
+pontoPico                                         build/main.o
+rampa_externa                                     build/main.o
+rampa_interna                                     build/main.o
+reactor_add_handlerI                              build/reactor.o
+                                                  build/main.o
+                                                  build/adc.o
+                                                  build/uart.o
+                                                  build/systick_handler.o
+reactor_init                                      build/reactor.o
+                                                  build/system_init.o
+reactor_start                                     build/reactor.o
+                                                  build/main.o
+samples                                           build/adc.o
+system_init                                       build/system_init.o
+                                                  build/startup_sam3x8a.o
+systick_no_ticks                                  build/systick_handler.o
+table                                             build/main.o
+table_ctr                                         build/main.o
+uart_getc                                         build/uart.o
+uart_init                                         build/uart.o
+                                                  build/system_init.o
+uart_putc                                         build/uart.o
+                                                  build/main.o
+uart_read                                         build/uart.o
+uart_start                                        build/uart.o
+                                                  build/main.o
+uart_stop                                         build/uart.o
+uart_write                                        build/uart.o
+user_init                                         build/startup_sam3x8a.o
+vt_add_non_rt_handlerI                            build/virtual_timer.o
+vt_add_rt_handlerI                                build/virtual_timer.o
+vt_deinit                                         build/virtual_timer_impl.o
+                                                  build/virtual_timer.o
+vt_delete_non_rt_handlerI                         build/virtual_timer.o
+vt_delete_rt_handlerI                             build/virtual_timer.o
+vt_init                                           build/virtual_timer_impl.o
+                                                  build/virtual_timer.o
+                                                  build/system_init.o
+vt_non_rt_data_array                              build/virtual_timer.o
+                                                  build/systick_handler.o
+vt_non_rt_handler_array                           build/virtual_timer.o
+                                                  build/systick_handler.o
+vt_rt_handler_array                               build/virtual_timer.o
+                                                  build/systick_handler.o
+vt_update_non_rt_handlerI                         build/virtual_timer.o
