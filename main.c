@@ -55,21 +55,26 @@ void analisa_maximo(){//função para analisar o maximo valor do pico}*)
 
 void rampa_interna(hcos_word_t arg){
     unsigned int contadorMedidas = 0; // Conta o numero de medidas realizadas.
-    unsigned int amostras = 250, rampa = 0;
+    uint16_t amostras = 250, rampa = 0;
     uint16_t min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), pontosIniciais = 0,mediaAux = min_rampa;
     uint16_t pulsoAtual = 0, pulsoAnterior = 0;
     unsigned int pinSinc = 4;//sincronização com o circuito de Higor
 
 
+    uint16_t ctr2 = min_rampa;
     
-    uint16_t i = min_rampa;
     dac_set(DAC_CH1);
-    gpio_toggle_pin(GPIOC, 25);
 
     do{            
         if(DAC->ISR & 0x1){
-            DAC->CDR = i;            
+            DAC->CDR = ctr2;
+            ctr2++;          
         }
+
+        if( ctr2 <= 3000)
+                gpio_set_pin(GPIOC, 25);
+            else
+                gpio_clear_pin(GPIOC, 25);
 #if 0
         if(i == max_ramp){
             analisa_maximo();//define o maximo a ser mandado
@@ -105,10 +110,10 @@ void rampa_interna(hcos_word_t arg){
             }
         }
 #endif
-        i++;
+        
             
-    }while(min_rampa <= i < max_ramp);
-    while(1){}
+    }while(min_rampa <= ctr2 < max_ramp);
+    ctr2 = 2000-125;
     ctr = 0;
     
     if(gpio_read_pin(GPIOC, 24))
@@ -126,9 +131,6 @@ void rampa_externa(hcos_word_t arg){
     ADC->CHDR = 0xFFFF;    
     adc_sel_pin(A6);
 
-    
-
-
     if(cursor_pos > (4095 - LARG_CURSOR))
         cursor_pos = 4095 - LARG_CURSOR;
 
@@ -139,6 +141,7 @@ void rampa_externa(hcos_word_t arg){
     do{
             if(DAC->ISR & 0x1){
                 DAC->CDR = i;
+                i = i+slope;
             }
             
             if(ADC->ISR & ADC_ISR_DRDY){
@@ -152,9 +155,7 @@ void rampa_externa(hcos_word_t arg){
             
             if(i == 4095)
                 slope = NEG;
-            i = i+slope;
-        
-        
+            
     }while(i > 0);
     
     if(gpio_read_pin(GPIOC, 24))
@@ -190,12 +191,6 @@ int main(void) {
 
 
 
-    
-
-    //gpio_set_pin_mode(GPIOC, 22, GPIO_INPUT_MODE);
-    //gpio_set_pin(GPIOB, 27);
-    //adc_start(&adc, &adc_config);
-    //adc_start_conversion(&adc, adc_buffer, ADC_BUFFER_SIZE);
     reactor_add_handler(rampa_externa, 0);
     reactor_start();
     return 0;
