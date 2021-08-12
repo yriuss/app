@@ -25,10 +25,8 @@ void blink_cb(hcos_word_t arg) {
 #define ADC_BUFFER_SIZE 1024
 uint16_t adc_buffer[ADC_BUFFER_SIZE];
 
-#define MAX_TICKS 0
+uint16_t ctr = 0;
 
-int ctr = MAX_TICKS;
-//int ctr = MAX_TICKS;
 uint16_t data;
 
 uint16_t g_posicaoCursor = 2048;
@@ -58,7 +56,7 @@ void analisa_maximo(){//função para analisar o maximo valor do pico}*)
 void rampa_interna(hcos_word_t arg){
     unsigned int contadorMedidas = 0; // Conta o numero de medidas realizadas.
     unsigned int amostras = 250, rampa = 0;
-    unsigned int min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), pontosIniciais = 0,mediaAux = min_rampa;
+    uint16_t min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), pontosIniciais = 0,mediaAux = min_rampa;
     uint16_t pulsoAtual = 0, pulsoAnterior = 0;
     unsigned int pinSinc = 4;//sincronização com o circuito de Higor
 
@@ -67,11 +65,12 @@ void rampa_interna(hcos_word_t arg){
     uint16_t i = min_rampa;
     dac_set(DAC_CH1);
     gpio_toggle_pin(GPIOC, 25);
+
     do{            
         if(DAC->ISR & 0x1){
             DAC->CDR = i;            
         }
-/*
+#if 0
         if(i == max_ramp){
             analisa_maximo();//define o maximo a ser mandado
             pontosIniciais++;
@@ -104,11 +103,13 @@ void rampa_interna(hcos_word_t arg){
                 DAC->CDR = mediaAux;
                 }
             }
-        }*/
+        }
+#endif
         i++;
             
     }while(min_rampa <= i < max_ramp);
-    
+    while(1){}
+    ctr = 0;
     
     if(gpio_read_pin(GPIOC, 24))
         reactor_add_handler(rampa_interna, 0);
@@ -117,7 +118,7 @@ void rampa_interna(hcos_word_t arg){
 }
 
 void rampa_externa(hcos_word_t arg){
-    int i = 0;
+    uint16_t i = 0;
     uint16_t cursor_pos = 2048;
     int time = 0;
     dac_set(DAC_CH0);
@@ -136,8 +137,6 @@ void rampa_externa(hcos_word_t arg){
     int slope = POS;
     
     do{
-            
-
             if(DAC->ISR & 0x1){
                 DAC->CDR = i;
             }
@@ -170,20 +169,7 @@ void rampa_externa(hcos_word_t arg){
 int main(void) {
     gpio_set_pin_mode(GPIOC, 24, GPIO_INPUT_MODE||GPIO_PULLUP);
     gpio_set_pin_mode(GPIOC, 25, GPIO_OUTPUT_MODE);
-    uart_config_t uart_cfg = {.baudrate = 115200,
-			      .word_length = 8,
-			      .stop_bits = 1,
-			      .parity = 0,
-			      .over_sampling = 0,
-			      .hw_flow_ctl = 0,
-			      .rx_threshold = UART_BUFFER_SIZE/2, /* Threshold to call the rx callback */
-			      .rx_complete_cb = 0,
-			      .tx_complete_cb = 0,
-			      .error_cb = 0
-    };
-
-
-    uart_start(&SD1, &uart_cfg);
+    
 
 
     DAC->CR = DAC_CR_SWRST;
@@ -206,7 +192,6 @@ int main(void) {
 
     
 
-    uart_start(&SD1, &uart_cfg);
     //gpio_set_pin_mode(GPIOC, 22, GPIO_INPUT_MODE);
     //gpio_set_pin(GPIOB, 27);
     //adc_start(&adc, &adc_config);
