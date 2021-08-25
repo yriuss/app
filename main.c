@@ -11,16 +11,21 @@
 #define NUM_MAX_PICOS 50 //NUM_MAX_PICOS: número de picos que são lidos antes de o travamento ser realizado.}*)
 #define NUM_MEDIDAS 40
 
-unsigned int lerMedida[NUM_MEDIDAS], nMedida[NUM_MEDIDAS ];//lerMedida[40]: medidas lidas pelo pinMedicao. nMedida[40]: o ponto da rampa correspondente a cada medida tirada.
-unsigned int pontoPico[NUM_MAX_PICOS],numDePicos = 0;
-unsigned int media = 0, mediaTrans = 0, picoAtual = 0;
+unsigned int ler_medida[NUM_MEDIDAS], ponto_medida[NUM_MEDIDAS ];//lerMedida[40]: medidas lidas pelo pinMedicao. nMedida[40]: o ponto da rampa correspondente a cada medida tirada.
+unsigned int ponto_pico[NUM_MAX_PICOS],num_de_dicos = 0;
+unsigned int media = 0, media_translacao = 0, pico_atual = 0;
 
 /*
  * Callback to blink the led to show the app is active
  */
-void blink_cb(hcos_word_t arg) {
-    gpio_toggle_pin(GPIOB, 27);
-}
+
+const uint16_t amostras = 250;
+
+unsigned int contador_medidas = 0; // Conta o numero de medidas realizadas.
+uint16_t  rampa = 0;
+uint16_t min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), picos_iniciais = 0,media_picos;
+uint16_t pulsoAtual = 0, pulsoAnterior = 0;
+unsigned int pin_sinc = 4;//sincronização com o circuito de Higor
 
 #define ADC_BUFFER_SIZE 1024
 uint16_t adc_buffer[ADC_BUFFER_SIZE];
@@ -38,84 +43,117 @@ void rampa_externa(hcos_word_t arg);
 void rampa_interna(hcos_word_t arg);
 
 
+
+
+uint16_t checa_pulso_descida(){
+    static uint16_t pulso_anterior = 0;
+    int k = 0;
+    while(k < 5){
+        k++;
+    }
+    uint16_t pulso_atual = gpio_read_pin(GPIOA, 29);
+    if((pulso_anterior != pulso_atual) && pulso_atual == 0){
+        pulso_anterior = pulso_atual;
+        return 1;
+    }
+    pulso_anterior = pulso_atual;
+    return 0;
+}
+
 void analisa_maximo(){//função para analisar o maximo valor do pico}*)
   unsigned int auxPico = 0, picoAtual = 0,ponto_pico[10], nMedida[0];
   
   for(int u=0;u<=39;u++){
-    if(auxPico<lerMedida[u]){//pega o maior valor dentro destes dados
-      auxPico=lerMedida[u];
-      ponto_pico[picoAtual] = nMedida[u];
+    if(auxPico<ler_medida[u]){//pega o maior valor dentro destes dados
+      auxPico=ler_medida[u];
+      ponto_pico[picoAtual] = ponto_medida[u];
     }
   }
   
   for(int u=0; u<=39;u++)
-        lerMedida[u]=0;
+        ler_medida[u]=0;
   
 }
 
+#define MAX_TICKS 5
+#define MAX_TICKS_EXT 100
+
 void rampa_interna(hcos_word_t arg){
-    unsigned int contadorMedidas = 0; // Conta o numero de medidas realizadas.
-    uint16_t amostras = 250, rampa = 0;
-    uint16_t min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), pontosIniciais = 0,mediaAux = min_rampa;
-    uint16_t pulsoAtual = 0, pulsoAnterior = 0;
-    unsigned int pinSinc = 4;//sincronização com o circuito de Higor
 
-
-    uint16_t ctr2 = min_rampa;
+    uint16_t i = min_rampa, retardador = 0;
     
-    dac_set(DAC_CH1);
+    dac_set(DAC_CH0);
 
-    do{            
-        if(DAC->ISR & 0x1){
-            DAC->CDR = ctr2;
-            ctr2++;          
+    do{
+    if(retardador++ == MAX_TICKS){
+        retardador = 0;
+
+        if(checa_pulso_descida())
+            rampa = 1;
+
+        if (rampa == 0)
+        {
+            do{
+            }while(!(DAC->ISR & 0x1));
+            DAC->CDR = media;
         }
+        
 
-        if( ctr2 <= 3000)
-                gpio_set_pin(GPIOC, 25);
+            
+        if(rampa == 1){    
+            if( i <= min_rampa + 11)
+                gpio_set_pin(GPIOC, 23);
             else
-                gpio_clear_pin(GPIOC, 25);
-#if 0
+                gpio_clear_pin(GPIOC, 23);
+            if(DAC->ISR & 0x1){
+                DAC->CDR = i;
+                i++;
+            }
+        if(contador_medidas == 40)
+            contador_medidas = 0;
+        if((i - min_rampa)%5 && i >= 50){
+            ler_medida[contador_medidas] = adc_read(A10);// pino para as medições
+            ponto_medida[contador_medidas] = i;
+            contador_medidas++;
+        }
         if(i == max_ramp){
-            analisa_maximo();//define o maximo a ser mandado
-            pontosIniciais++;
-            if(pontosIniciais < NUM_MAX_PICOS){//picos a serem lidos para se ter uma media antes de se realizar o travamento
+            analisa_maximo();
+            picos_iniciais++;
+            if(picos_iniciais < NUM_MAX_PICOS){
                 do{
-                  DAC->CDR = pontoPico[picoAtual];
+                    
                 }while(!(DAC->ISR & 0x1));
-                picoAtual++;
-            }else{//quando terminar de ler os picos iniciais...
-                picoAtual = NUM_MAX_PICOS - 1;
-                pontosIniciais--;
-                for(int k=0;k <= NUM_MAX_PICOS-1;k++)
-                media = pontoPico[k] + media;
-                media = media/NUM_MAX_PICOS;
-                media = media;
-                for(int k=0; k < 5; k++)
-                    mediaTrans = mediaTrans + pontoPico[picoAtual - k];
-                mediaTrans = mediaTrans / 5;//mediaTrans: média de translação
-                for(int k=1;k <= NUM_MAX_PICOS - 1;k++)
-                pontoPico[k-1] = pontoPico[k];
-                if(mediaTrans > 4000-(amostras/2))//definindo um valor maximo que mediaTrans pode ser
-                    mediaTrans = 4000-(amostras/2);
-                if(mediaTrans < (amostras/2))//definindo um valor minimo que mediaTrans pode ser
-                    mediaTrans = amostras/2;        
-                if(mediaTrans != (max_ramp + min_rampa) / 2){//este if tem como finalidade acompanhar o pico em que se pretende travar, mudando o max e min da rampa gerada
-                    max_ramp = mediaTrans + amostras/2;
-                    min_rampa = mediaTrans - amostras/2;
+                DAC->CDR = ponto_pico[pico_atual];
+                pico_atual++;
+            }else{
+                pico_atual = NUM_MAX_PICOS - 1;
+                picos_iniciais--;
+                int k = 0;
+
+                    for(k = 0; k < NUM_MAX_PICOS - 1; k++)
+                        media = ponto_pico[k] + media;
+
+                    media = media/NUM_MAX_PICOS;
+                    for(k = 0; k < 5; k++)
+                        media_translacao = media_translacao + ponto_pico[pico_atual - k];
+
+                    media_translacao = media_translacao/5;
+                    for(k = 1; k < NUM_MAX_PICOS - 1; k++)
+                        ponto_pico[k-1] = ponto_pico[k];
+
                 }
-                if(DAC->ISR & 0x1 && rampa == 0){
-                DAC->CDR = mediaAux;
-                }
+                do{
+                }while(!(DAC->ISR & 0x01));
+                DAC->CDR = media;
+
             }
         }
-#endif
-        
-            
-    }while(min_rampa <= ctr2 < max_ramp);
-    ctr2 = 2000-125;
-    ctr = 0;
+
+    }
+    }while(min_rampa <= i && i < max_ramp && gpio_read_pin(GPIOC, 24));
     
+    rampa = 0;
+
     if(gpio_read_pin(GPIOC, 24))
         reactor_add_handler(rampa_interna, 0);
     else
@@ -126,10 +164,10 @@ void rampa_externa(hcos_word_t arg){
     uint16_t i = 0;
     uint16_t cursor_pos = 2048;
     int time = 0;
-    dac_set(DAC_CH0);
+    dac_set(DAC_CH1);
     
     ADC->CHDR = 0xFFFF;    
-    adc_sel_pin(A6);
+    adc_sel_pin(A0);
 
     if(cursor_pos > (4095 - LARG_CURSOR))
         cursor_pos = 4095 - LARG_CURSOR;
@@ -137,8 +175,10 @@ void rampa_externa(hcos_word_t arg){
     if(cursor_pos < LARG_CURSOR)
         cursor_pos = LARG_CURSOR;
     int slope = POS;
-    
+    uint16_t retardador = 0;
     do{
+    if(retardador == MAX_TICKS_EXT){
+            retardador = 0;
             if(DAC->ISR & 0x1){
                 DAC->CDR = i;
                 i = i+slope;
@@ -149,17 +189,28 @@ void rampa_externa(hcos_word_t arg){
             }
             
             if( i >= cursor_pos - LARG_CURSOR && i <= cursor_pos + LARG_CURSOR && slope == POS)
-                gpio_set_pin(GPIOC, 25);
+                gpio_set_pin(GPIOC, 23);
             else
-                gpio_clear_pin(GPIOC, 25);
+                gpio_clear_pin(GPIOC, 23);
             
             if(i == 4095)
                 slope = NEG;
-            
-    }while(i > 0);
-    
-    if(gpio_read_pin(GPIOC, 24))
+    }
+    retardador++;
+    }while(!(i <= 0 && slope == NEG));
+
+    do{
+        DAC->CDR = cursor_pos;
+    }while(!(DAC->ISR & 0x1));
+
+    if(gpio_read_pin(GPIOC, 24)){
+        contador_medidas = 0; // Conta o numero de medidas realizadas.
+        rampa = 0;
+        min_rampa = 2000 - (amostras/2); max_ramp = 2000 + (amostras/2); picos_iniciais = 0; media_picos = min_rampa;
+        pulsoAtual = 0; pulsoAnterior = 0;
+        pin_sinc = 4;//sincronização com o circuito de Higor
         reactor_add_handler(rampa_interna, 0);
+    }
     else
         reactor_add_handler(rampa_externa, 0);
 }
@@ -168,8 +219,10 @@ void rampa_externa(hcos_word_t arg){
 
 
 int main(void) {
-    gpio_set_pin_mode(GPIOC, 24, GPIO_INPUT_MODE||GPIO_PULLUP);
-    gpio_set_pin_mode(GPIOC, 25, GPIO_OUTPUT_MODE);
+    gpio_set_pin_mode(GPIOC, 24, GPIO_INPUT_MODE|GPIO_PULLUP);
+
+    gpio_set_pin_mode(GPIOA, 29, GPIO_INPUT_MODE);
+    gpio_set_pin_mode(GPIOC, 23, GPIO_OUTPUT_MODE);
     
 
 
