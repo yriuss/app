@@ -81,7 +81,8 @@ void analisa_maximo(){//função para analisar o maximo valor do pico}*)
 void rampa_interna(hcos_word_t arg){
 
     uint16_t i = min_rampa, retardador = 0;
-    
+
+    do {
     dac_set(DAC_CH0);
 
     do{
@@ -154,16 +155,15 @@ void rampa_interna(hcos_word_t arg){
     
     rampa = 0;
 
-    if(gpio_read_pin(GPIOC, 24))
-        reactor_add_handler(rampa_interna, 0);
-    else
-        reactor_add_handler(rampa_externa, 0);
+    } while (gpio_read_pin(GPIOC, 24))
 }
 
 void rampa_externa(hcos_word_t arg){
     uint16_t i = 0;
     uint16_t cursor_pos = 2048;
     int time = 0;
+
+    do {
     dac_set(DAC_CH1);
     
     ADC->CHDR = 0xFFFF;    
@@ -209,10 +209,9 @@ void rampa_externa(hcos_word_t arg){
         min_rampa = 2000 - (amostras/2); max_ramp = 2000 + (amostras/2); picos_iniciais = 0; media_picos = min_rampa;
         pulsoAtual = 0; pulsoAnterior = 0;
         pin_sinc = 4;//sincronização com o circuito de Higor
-        reactor_add_handler(rampa_interna, 0);
+        rampa_interna(0);
     }
-    else
-        reactor_add_handler(rampa_externa, 0);
+    } while (1);
 }
 
 
@@ -244,7 +243,7 @@ int main(void) {
 
 
 
-    reactor_add_handler(rampa_externa, 0);
+    rampa_externa(0);
     reactor_start();
     return 0;
 }
