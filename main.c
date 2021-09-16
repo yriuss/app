@@ -48,7 +48,7 @@ void rampa_interna(hcos_word_t arg);
 uint16_t checa_pulso_descida(){
     static uint16_t pulso_anterior = 0;
     int k = 0;
-    while(k < 5){
+    while(k < 3){
         k++;
     }
     uint16_t pulso_atual = gpio_read_pin(GPIOA, 29);
@@ -75,94 +75,39 @@ void analisa_maximo(){//função para analisar o maximo valor do pico}*)
   
 }
 
-#define MAX_TICKS 5
+#define MAX_TICKS 0
 #define MAX_TICKS_EXT 100
 
+
 void rampa_interna(hcos_word_t arg){
-
     uint16_t i = min_rampa, retardador = 0;
-
-    do {
     dac_set(DAC_CH0);
-
-    do{
-    if(retardador++ == MAX_TICKS){
-        retardador = 0;
-
-        if(checa_pulso_descida())
-            rampa = 1;
-
-        if (rampa == 0)
-        {
-            do{
-            }while(!(DAC->ISR & 0x1));
-            DAC->CDR = media;
-        }
+    do {
         
-
-            
-        if(rampa == 1){    
-            if( i <= min_rampa + 11)
-                gpio_set_pin(GPIOC, 23);
-            else
-                gpio_clear_pin(GPIOC, 23);
-            if(DAC->ISR & 0x1){
-                DAC->CDR = i;
-                i++;
-            }
-        if(contador_medidas == 40)
-            contador_medidas = 0;
-        if((i - min_rampa)%5 && i >= 50){
-            ler_medida[contador_medidas] = adc_read(A10);// pino para as medições
-            ponto_medida[contador_medidas] = i;
-            contador_medidas++;
+        if(checa_pulso_descida()){
+            rampa = 1;
         }
-        if(i == max_ramp){
-            analisa_maximo();
-            picos_iniciais++;
-            if(picos_iniciais < NUM_MAX_PICOS){
-                do{
-                    
-                }while(!(DAC->ISR & 0x1));
-                DAC->CDR = ponto_pico[pico_atual];
-                pico_atual++;
-            }else{
-                pico_atual = NUM_MAX_PICOS - 1;
-                picos_iniciais--;
-                int k = 0;
-
-                    for(k = 0; k < NUM_MAX_PICOS - 1; k++)
-                        media = ponto_pico[k] + media;
-
-                    media = media/NUM_MAX_PICOS;
-                    for(k = 0; k < 5; k++)
-                        media_translacao = media_translacao + ponto_pico[pico_atual - k];
-
-                    media_translacao = media_translacao/5;
-                    for(k = 1; k < NUM_MAX_PICOS - 1; k++)
-                        ponto_pico[k-1] = ponto_pico[k];
-
+        if(rampa == 1){
+            do{
+                if(retardador++ == 15){
+                    do{
+                    }while(!(DAC->ISR & 0x1));
+                    DAC->CDR = i++;
+                    retardador = 0;
                 }
-                do{
-                }while(!(DAC->ISR & 0x01));
-                DAC->CDR = media;
 
-            }
+            }while(min_rampa <= i && i < max_ramp);
         }
-
-    }
-    }while(min_rampa <= i && i < max_ramp && gpio_read_pin(GPIOC, 24));
-    
-    rampa = 0;
-
-    } while (gpio_read_pin(GPIOC, 24))
+        rampa = 0;
+        i = min_rampa;
+    } while (gpio_read_pin(GPIOC, 24));
 }
 
 void rampa_externa(hcos_word_t arg){
     uint16_t i = 0;
     uint16_t cursor_pos = 2048;
     int time = 0;
-
+    uint16_t retardador = 0;
     do {
     dac_set(DAC_CH1);
     
@@ -175,7 +120,7 @@ void rampa_externa(hcos_word_t arg){
     if(cursor_pos < LARG_CURSOR)
         cursor_pos = LARG_CURSOR;
     int slope = POS;
-    uint16_t retardador = 0;
+    
     do{
     if(retardador == MAX_TICKS_EXT){
             retardador = 0;
@@ -200,9 +145,9 @@ void rampa_externa(hcos_word_t arg){
     }while(!(i <= 0 && slope == NEG));
 
     do{
-        DAC->CDR = cursor_pos;
+        
     }while(!(DAC->ISR & 0x1));
-
+    DAC->CDR = cursor_pos;
     if(gpio_read_pin(GPIOC, 24)){
         contador_medidas = 0; // Conta o numero de medidas realizadas.
         rampa = 0;
