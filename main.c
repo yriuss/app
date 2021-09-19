@@ -9,10 +9,10 @@
 #include "dac.h"
 
 #define NUM_MAX_PICOS 50 //NUM_MAX_PICOS: número de picos que são lidos antes de o travamento ser realizado.}*)
-#define NUM_MEDIDAS 40
+#define NUM_MEDIDAS 50
 
-unsigned int ler_medida[NUM_MEDIDAS], ponto_medida[NUM_MEDIDAS ];//lerMedida[40]: medidas lidas pelo pinMedicao. nMedida[40]: o ponto da rampa correspondente a cada medida tirada.
-unsigned int ponto_pico[NUM_MAX_PICOS],num_de_dicos = 0;
+unsigned int possiveis_picos[NUM_MEDIDAS], ler_medida[NUM_MEDIDAS], ponto_medida[NUM_MEDIDAS ];//lerMedida[40]: medidas lidas pelo pinMedicao. nMedida[40]: o ponto da rampa correspondente a cada medida tirada.
+uint16_t ponto_pico[NUM_MAX_PICOS],contador_picos = 0;
 unsigned int media = 0, media_translacao = 0, pico_atual = 0;
 
 /*
@@ -23,7 +23,7 @@ const uint16_t amostras = 250;
 
 unsigned int contador_medidas = 0; // Conta o numero de medidas realizadas.
 uint16_t  rampa = 0;
-uint16_t min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), picos_iniciais = 0,media_picos;
+uint16_t min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), picos_iniciais = 0;
 uint16_t pulsoAtual = 0, pulsoAnterior = 0;
 unsigned int pin_sinc = 4;//sincronização com o circuito de Higor
 
@@ -60,43 +60,93 @@ uint16_t checa_pulso_descida(){
     return 0;
 }
 
-void analisa_maximo(){//função para analisar o maximo valor do pico}*)
-  unsigned int auxPico = 0, picoAtual = 0,ponto_pico[10], nMedida[0];
-  
-  for(int u=0;u<=39;u++){
-    if(auxPico<ler_medida[u]){//pega o maior valor dentro destes dados
-      auxPico=ler_medida[u];
-      ponto_pico[picoAtual] = ponto_medida[u];
+void analisa_maximo(){//função para analisar o maximo valor do pico
+  unsigned int auxPico = 0;
+  int u=0;
+  for(u=0;u<=39;u++){
+    if(auxPico<possiveis_picos[u]){//pega o maior valor dentro destes dados
+      auxPico=possiveis_picos[u];
+      pico_atual = ponto_medida[u];
     }
   }
   
-  for(int u=0; u<=39;u++)
-        ler_medida[u]=0;
+  for(u=0; u<=39;u++){
+        possiveis_picos[u]=0;
+        ponto_medida[u]  = 0;
+    }
   
 }
 
 #define MAX_TICKS 0
 #define MAX_TICKS_EXT 100
 
-
+unsigned int media_picos = 0;
 void rampa_interna(hcos_word_t arg){
     uint16_t i = min_rampa, retardador = 0;
     dac_set(DAC_CH0);
+    adc_sel_pin(A9);
     do {
         
         if(checa_pulso_descida()){
             rampa = 1;
         }
         if(rampa == 1){
+            contador_medidas = 0;
+            
             do{
                 if(retardador++ == 15){
-                    do{
-                    }while(!(DAC->ISR & 0x1));
-                    DAC->CDR = i++;
+                    dac_write(i++);
+
+                    if((ADC->ISR & ADC_ISR_DRDY) && contador_medidas < NUM_MEDIDAS && i > (min_rampa + 0) && i < (max_ramp - 0)){
+                        possiveis_picos[contador_medidas] = adc_read(ADC);
+                        ponto_medida[contador_medidas] = i;
+                        contador_medidas++;
+                    }
+
+                    if(i == max_ramp){
+                        analisa_maximo();
+                        
+                        
+                        if(1){
+                            dac_write(pico_atual);
+                            ponto_pico[contador_picos] = pico_atual;
+                            //contador_picos++;
+                        }else{
+                            int u = 0;
+
+                            for(u = 1; u < NUM_MAX_PICOS; u++){
+                                ponto_pico[u - 1] = ponto_pico[u];
+                            }
+
+                            ponto_pico[NUM_MAX_PICOS - 1] = pico_atual;
+
+                            media_picos = 0;
+                            for(u = 0; u < NUM_MAX_PICOS; u++){
+                                media_picos += ponto_pico[u];
+                            }
+                            media_picos = media_picos / NUM_MAX_PICOS;
+
+                            dac_write(media_picos);
+                            /*
+                            min_rampa = media_picos - 125;
+                            if(min_rampa < 0){
+                                min_rampa = 0;
+                                max_ramp = min_rampa + 250;
+                            }else{
+                                max_ramp = media_picos + 125;
+                            }
+                            if(max_ramp > 4000){
+                                max_ramp = 4000;
+                                min_rampa = max_ramp - 250;
+                            }*/
+                        }
+                    }
+
                     retardador = 0;
                 }
 
             }while(min_rampa <= i && i < max_ramp);
+
         }
         rampa = 0;
         i = min_rampa;
@@ -123,31 +173,28 @@ void rampa_externa(hcos_word_t arg){
     
     do{
     if(retardador == MAX_TICKS_EXT){
-            retardador = 0;
-            if(DAC->ISR & 0x1){
-                DAC->CDR = i;
-                i = i+slope;
-            }
-            
-            if(ADC->ISR & ADC_ISR_DRDY){
-                cursor_pos = adc_read(ADC);
-            }
-            
-            if( i >= cursor_pos - LARG_CURSOR && i <= cursor_pos + LARG_CURSOR && slope == POS)
-                gpio_set_pin(GPIOC, 23);
-            else
-                gpio_clear_pin(GPIOC, 23);
-            
-            if(i == 4095)
-                slope = NEG;
+        retardador = 0;
+        
+        i +=slope;
+        dac_write(i);
+
+        if(ADC->ISR & ADC_ISR_DRDY){
+            cursor_pos = adc_read(ADC);
+        }
+        
+        if( i >= cursor_pos - LARG_CURSOR && i <= cursor_pos + LARG_CURSOR && slope == POS)
+            gpio_set_pin(GPIOC, 23);
+        else
+            gpio_clear_pin(GPIOC, 23);
+        
+        if(i == 4095)
+            slope = NEG;
     }
     retardador++;
     }while(!(i <= 0 && slope == NEG));
 
-    do{
-        
-    }while(!(DAC->ISR & 0x1));
-    DAC->CDR = cursor_pos;
+    dac_write(cursor_pos);
+
     if(gpio_read_pin(GPIOC, 24)){
         contador_medidas = 0; // Conta o numero de medidas realizadas.
         rampa = 0;
