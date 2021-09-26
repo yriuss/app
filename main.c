@@ -11,7 +11,7 @@
 #define NUM_MAX_PICOS 50 //NUM_MAX_PICOS: número de picos que são lidos antes de o travamento ser realizado.}*)
 #define NUM_MEDIDAS 50
 
-unsigned int possiveis_picos[NUM_MEDIDAS], ler_medida[NUM_MEDIDAS], ponto_medida[NUM_MEDIDAS ];//lerMedida[40]: medidas lidas pelo pinMedicao. nMedida[40]: o ponto da rampa correspondente a cada medida tirada.
+unsigned int possiveis_picos[NUM_MEDIDAS], teste_possiveis_picos[NUM_MEDIDAS], ler_medida[NUM_MEDIDAS], ponto_medida[NUM_MEDIDAS ];//lerMedida[40]: medidas lidas pelo pinMedicao. nMedida[40]: o ponto da rampa correspondente a cada medida tirada.
 uint16_t ponto_pico[NUM_MAX_PICOS],contador_picos = 0;
 unsigned int media = 0, media_translacao = 0, pico_atual = 0;
 
@@ -21,7 +21,7 @@ unsigned int media = 0, media_translacao = 0, pico_atual = 0;
 
 const uint16_t amostras = 250;
 
-unsigned int contador_medidas = 0; // Conta o numero de medidas realizadas.
+unsigned int contador_medidas = 0, contador_teste = 0; // Conta o numero de medidas realizadas.
 uint16_t  rampa = 0;
 uint16_t min_rampa = 2000 - (amostras/2), max_ramp = 2000 + (amostras/2), picos_iniciais = 0;
 uint16_t pulsoAtual = 0, pulsoAnterior = 0;
@@ -63,14 +63,14 @@ uint16_t checa_pulso_descida(){
 void analisa_maximo(){//função para analisar o maximo valor do pico
   unsigned int auxPico = 0;
   int u=0;
-  for(u=0;u<=39;u++){
+  for(u=0;u<=contador_medidas;u++){
     if(auxPico<possiveis_picos[u]){//pega o maior valor dentro destes dados
       auxPico=possiveis_picos[u];
       pico_atual = ponto_medida[u];
     }
   }
   
-  for(u=0; u<=39;u++){
+  for(u=0; u<=contador_medidas;u++){
         possiveis_picos[u]=0;
         ponto_medida[u]  = 0;
     }
@@ -91,25 +91,44 @@ void rampa_interna(hcos_word_t arg){
             rampa = 1;
         }
         if(rampa == 1){
-            contador_medidas = 0;
             
+            int t = 0;
+            for(t= 0; t < contador_medidas ; t++)
+                teste_possiveis_picos[t] = 0;
+            contador_medidas = 0;
+            int diff = 0;
             do{
                 if(retardador++ == 15){
-                    dac_write(i++);
 
-                    if((ADC->ISR & ADC_ISR_DRDY) && contador_medidas < NUM_MEDIDAS && i > (min_rampa + 0) && i < (max_ramp - 0)){
+                    dac_write(i);
+                    
+                    if((ADC->ISR & ADC_ISR_DRDY)){
                         possiveis_picos[contador_medidas] = adc_read(ADC);
+                        teste_possiveis_picos[contador_medidas] = possiveis_picos[contador_medidas];
                         ponto_medida[contador_medidas] = i;
                         contador_medidas++;
+                        diff = i;
+                        //gpio_toggle_pin(GPIOB, 27);
                     }
+
+                    i++;
 
                     if(i == max_ramp){
                         analisa_maximo();
-                        
-                        
+
                         if(1){
                             dac_write(pico_atual);
-                            ponto_pico[contador_picos] = pico_atual;
+                            contador_teste = 0;
+                            t=0;
+                            /*do{
+                                if(t++ == 150){
+                                    //dac_write(min_rampa);
+                                    dac_write(min_rampa + contador_teste);//teste_possiveis_picos[contador_teste]);
+                                    contador_teste++;
+                                    t = 0;
+                                }
+                            }while(contador_teste < contador_medidas);*/
+                            //ponto_pico[contador_picos] = pico_atual;
                             //contador_picos++;
                         }else{
                             int u = 0;
@@ -224,7 +243,7 @@ int main(void) {
     ADC->CR = ADC_CR_SWRST;
     ADC->MR = ADC_MR_FREERUN | code_adc_mr_settling(0) |
         code_adc_mr_tracking(0) | code_adc_mr_transfer(0) |
-        code_adc_mr_prescaler(200) | code_adc_mr_startup(1);
+        code_adc_mr_prescaler(50) | code_adc_mr_startup(1);
     adc_sel_pin(A8);
     /* ADC->IER = ADC_IER_DRDY; */
     
